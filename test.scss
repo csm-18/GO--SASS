@@ -1,0 +1,7 @@
+$primary: red;
+$seccondary: green;
+// Comment. text color is red while background color is green
+p {
+    color: $primary;
+    background-color: $seccondary;
+}
