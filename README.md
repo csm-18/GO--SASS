@@ -1,43 +1,77 @@
 # GO--SASS
-A simple SASS compiler written in go.
+A small SCSS-to-CSS compiler written in Go.
 
 ## Usage
-Download the GO-SASS.exe from the releases page then to use write out a scss file like the example below:
+Build a Windows executable:
+```bash
+go build -o GO-SASS.exe
+```
+
+Run the compiler with an input file:
+```powershell
+.\GO-SASS.exe -i input.scss
+```
+
+You can also set the output file explicitly:
+```powershell
+.\GO-SASS.exe -i input.scss -o output.css
+```
+
+A positional argument also works:
+```powershell
+.\GO-SASS.exe input.scss
+```
+
+If no input file is provided, the program defaults to `test.scss`. If no output file is provided, it writes to `output.css`.
+
+### Example
 ```scss
 $primary-color: red;
-$seccondary-color: green;
+$secondary-color: green;
 $font: monospace;
 
 // Nested example
 nav {
     color: $primary-color;
     font: $font;
+
     a {
-        color: $seccondary-color;
+        color: $secondary-color;
     }
 }
 ```
-Save that file then execute the program with the `-i` flag meaning include:
-```bash
-.\GO-SASS.exe -i text.scss
-```
-Then open the file output.css and find that tyour .scss file has been compiled into a valid .css file Like this example:
+
+Output:
 ```css
 nav {
-    color: red;
-    font-family: monospace;
+  color: red;
+  font: monospace;
 }
 
 nav a {
-    color: green;
+  color: green;
 }
 ```
 
-## Suppirted syntax features
+## Supported syntax features
 
-| Feature name | Example |
+| Feature | Supported |
 | --- | --- |
-| Nesting | Multiple selectors nested for styling specific elements in other elements |
-| Parent selecting | Any nested element with & gets added say `&:hover` in `nav { a {}}` becomes nav a:hover{} |
-| Variable support | Take any scss variable and turn it into css |
-| Comment support | Take scss comments // and turn them into css commands /* */ |
+| Nested selectors | Yes |
+| Parent selector (`&`) | Yes |
+| Variable replacement | Yes |
+| SCSS `//` comments converted to CSS `/* ... */` comments | Yes |
+
+## Testing
+Run the project tests with:
+```bash
+go test ./...
+```
+
+Compile a sample file:
+```bash
+go run . -i tests/test.scss -o test.css
+```
+
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and contribution workflow.
