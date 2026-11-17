@@ -3,6 +3,9 @@ $secondary: green;
 nav {
   a {
     color: $primary;
+    &:hover{
+      color: $secondary;
+    }
   }
 background-color: $secondary;
 }

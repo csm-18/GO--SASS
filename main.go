@@ -15,16 +15,23 @@ type cssBlock struct {
 
 func main() {
 	inputPath := flag.String("i", "", "Input SCSS file")
+	outputPath := flag.String("o", "", "Output CSS file Path")
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) >= 2 && args[0] == "i" {
+	if len(args) >= 4 && args[0] == "i" && args[2] == "o" {
 		*inputPath = args[1]
+		*outputPath = args[3]
 	} else if *inputPath == "" && len(args) > 0 {
 		*inputPath = args[0]
 	}
+
 	if *inputPath == "" {
 		*inputPath = "test.scss"
+	}
+
+	if *outputPath == "" {
+		*outputPath = "output.css"
 	}
 
 	fmt.Println("Reading SCSS file:", *inputPath)
@@ -38,9 +45,9 @@ func main() {
 	fmt.Println("Compiling CSS...")
 	output := compileSCSS(string(data))
 
-	fmt.Println("Writing output to output.css")
-	if err := os.WriteFile("output.css", []byte(output), 0644); err != nil {
-		fmt.Println("Error writing output.css:", err)
+	fmt.Println("Writing output to :", *outputPath)
+	if err := os.WriteFile(*outputPath, []byte(output), 0644); err != nil {
+		fmt.Println("Error writing output file:", err)
 		panic(err)
 	}
 
@@ -82,7 +89,19 @@ func compileSCSS(source string) string {
 			}
 			fullSelector := selector
 			if len(stack) > 0 {
-				fullSelector = strings.TrimSpace(stack[len(stack)-1].selector + " " + selector)
+				parent := stack[len(stack)-1].selector
+
+				if strings.Contains(selector, "&") {
+					fullSelector = strings.ReplaceAll(
+						selector,
+						"&",
+						parent,
+					)
+				} else {
+					fullSelector = strings.TrimSpace(
+						parent + " " + selector,
+					)
+				}
 			}
 
 			stackNames := []string{}
