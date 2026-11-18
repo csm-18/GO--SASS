@@ -12,15 +12,27 @@ func compile(srcPath, outPath string) (errors []string) {
 		return errors
 	}
 
-	tokens, errors := lexer(srcPath, src)
-	if len(errors) != 0 {
-		for _, error := range errors {
+	tokens, lexErrors := lexer(srcPath, src)
+	if len(lexErrors) != 0 {
+		for _, error := range lexErrors {
 			fmt.Println(error)
 		}
+		os.Exit(1)
 	}
-	for _, token := range tokens {
-		fmt.Printf("name: %v,value: %v, index: %v\n", token.name, token.value, token.index)
+
+	// for _, token := range tokens {
+	// 	fmt.Printf("name: %v,value: %v, index: %v\n", token.name, token.value, token.index)
+	// }
+
+	output, parseErrors := parse(tokens)
+	if len(parseErrors) != 0 {
+		for _, error := range parseErrors {
+			fmt.Println(error)
+		}
+		os.Exit(1)
 	}
+
+	fmt.Println(output)
 
 	return errors
 }

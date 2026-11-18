@@ -23,10 +23,10 @@ func lexer(srcPath, src string) (tokens []Token, errors []string) {
 	x := 0
 	for x < len(src) {
 		if src[x] == '\n' {
-			token := Token{"Newline", TokenNewline, "", x}
+			token := Token{"Newline", TokenNewline, "\n", x}
 			tokens = append(tokens, token)
 		} else if src[x] == ' ' {
-			token := Token{"Space", TokenSpace, "", x}
+			token := Token{"Space", TokenSpace, " ", x}
 			tokens = append(tokens, token)
 		} else if src[x] <= ' ' {
 			// Skip ASCII control characters
