@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -13,45 +12,127 @@ type cssBlock struct {
 	properties []string
 }
 
+type Options struct {
+	version  bool
+	help     bool
+	watchDir string
+	outDir   string
+	srcFiles []string
+	errors   []string
+}
+
+const VERSION = "minisass 0.2"
+const HELP = `A small SCSS-to-CSS compiler written in Go.
+Usage: minisass <input.scss>
+
+  Options:
+    -v              -> Print version.
+    -h              -> Print help.
+    -w folder-name  -> Watch folder for changes and re-generate .css files.
+    -o folder-name  -> Specify where the generated css files should go.`
+
 func main() {
-	inputPath := flag.String("i", "", "Input SCSS file")
-	outputPath := flag.String("o", "", "Output CSS file Path")
-	flag.Parse()
+	args := os.Args[1:]
+	options := parseCommandLineArgs(args)
 
-	args := flag.Args()
-	if len(args) >= 4 && args[0] == "i" && args[2] == "o" {
-		*inputPath = args[1]
-		*outputPath = args[3]
-	} else if *inputPath == "" && len(args) > 0 {
-		*inputPath = args[0]
+	if len(options.errors) != 0 {
+		for _, error := range options.errors {
+			fmt.Println(error)
+		}
+		os.Exit(1)
 	}
 
-	if *inputPath == "" {
-		*inputPath = "test.scss"
+	if options.watchDir != "" && (options.version || options.help || len(options.srcFiles) != 0) {
+		fmt.Println("error: -w option cannot be used with other options except -o option.")
+		os.Exit(1)
 	}
 
-	if *outputPath == "" {
-		*outputPath = "output.css"
+	if options.version && options.help {
+		fmt.Println(VERSION)
+		fmt.Println(HELP)
+		os.Exit(0)
+	} else if options.version {
+		fmt.Println(VERSION)
+		os.Exit(0)
+	} else if options.help {
+		fmt.Println(VERSION)
+		fmt.Println(HELP)
+		os.Exit(0)
+	} else if options.watchDir != "" {
+		// Watch option
+		fmt.Println("This option is under construction 😅")
+		os.Exit(0)
+	} else if len(options.srcFiles) != 0 {
+		// Compile SCSS files to CSS files
+		fmt.Println("Compiling!")
+	} else {
+		fmt.Println("error: No .scss source files provided!")
+		os.Exit(1)
 	}
 
-	fmt.Println("Reading SCSS file:", *inputPath)
+}
 
-	data, err := os.ReadFile(*inputPath)
+func parseCommandLineArgs(args []string) (options Options) {
+	if len(args) == 0 {
+		options.version = true
+		options.help = true
+		return options
+	}
+
+	x := 0
+	for x < len(args) {
+		if args[x] == "-v" {
+			options.version = true
+		} else if args[x] == "-h" {
+			options.help = true
+		} else if strings.HasSuffix(args[x], ".scss") {
+			options.srcFiles = append(options.srcFiles, args[x])
+		} else if args[x] == "-o" {
+			x += 1
+			if x < len(args) {
+				if isDirectory(args[x]) {
+					options.outDir = args[x]
+				} else {
+					options.errors = append(options.errors, "error: Invalid path provided to -o option: "+args[x])
+				}
+			} else {
+				error := "error: No path provided to -o option."
+				options.errors = append(options.errors, error)
+			}
+		} else if args[x] == "-w" {
+			x += 1
+			if x < len(args) {
+				if isDirectory(args[x]) {
+					options.watchDir = args[x]
+				} else {
+					options.errors = append(options.errors, "error: Invalid path provided to -w option: "+args[x])
+				}
+			} else {
+				error := "error: No path provided to -w option."
+				options.errors = append(options.errors, error)
+			}
+
+		} else {
+			error := "error: Unknown option: " + args[x]
+			options.errors = append(options.errors, error)
+		}
+		x += 1
+	}
+
+	return options
+}
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		panic(err)
+		return false
 	}
 
-	fmt.Println("Compiling CSS...")
-	output := compileSCSS(string(data))
-
-	fmt.Println("Writing output to :", *outputPath)
-	if err := os.WriteFile(*outputPath, []byte(output), 0644); err != nil {
-		fmt.Println("Error writing output file:", err)
-		panic(err)
+	if !info.IsDir() {
+		return false
 	}
 
-	fmt.Println("Done.")
+	return true
 }
 
 func compileSCSS(source string) string {

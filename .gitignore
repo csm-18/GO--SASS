@@ -26,6 +26,8 @@ profile.cov
 go.work
 go.work.sum
 
+minisass
+
 # env file
 .env
 
