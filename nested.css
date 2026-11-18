@@ -1,0 +1,10 @@
+nav a:hover {
+  color: green;
+}
+nav a {
+  color: red;
+}
+nav {
+  background-color: green;
+  font-family: Open Sans;
+}

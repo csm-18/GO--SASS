@@ -22,6 +22,16 @@ A positional argument also works:
 .\GO-SASS.exe input.scss
 ```
 
+Minify CSS output:
+```powershell
+.\GO-SASS.exe -i input.scss -minify
+```
+
+Display help and usage information:
+```powershell
+.\GO-SASS.exe --help
+```
+
 If no input file is provided, the program defaults to `test.scss`. If no output file is provided, it writes to `output.css`.
 
 ### Example

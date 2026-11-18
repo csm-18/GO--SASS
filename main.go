@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -11,11 +13,60 @@ type cssBlock struct {
 	name       string
 	selector   string
 	properties []string
+	Line       int
+}
+
+func printUsage(w io.Writer) {
+	prog := "GO-SASS.exe"
+	if len(os.Args) > 0 {
+		base := filepath.Base(os.Args[0])
+		if !strings.Contains(base, "go-build") && base != "main" && base != "main.exe" && !strings.HasPrefix(base, "minisass") {
+			prog = base
+		}
+	}
+
+	fmt.Fprintf(w, "GO-SASS - A small SCSS-to-CSS compiler written in Go\n\n")
+	fmt.Fprintf(w, "Usage:\n")
+	fmt.Fprintf(w, "  %s [flags] [input file]\n", prog)
+	fmt.Fprintf(w, "  %s -i <input.scss> [-o <output.css>] [-minify]\n\n", prog)
+	fmt.Fprintf(w, "Flags:\n")
+	fmt.Fprintf(w, "  -i string\n")
+	fmt.Fprintf(w, "    \tInput SCSS file path (default: \"test.scss\")\n")
+	fmt.Fprintf(w, "  -o string\n")
+	fmt.Fprintf(w, "    \tOutput CSS file path (default: \"output.css\")\n")
+	fmt.Fprintf(w, "  -minify\n")
+	fmt.Fprintf(w, "    \tMinify CSS output\n")
+	fmt.Fprintf(w, "  -h, --help\n")
+	fmt.Fprintf(w, "    \tDisplay this help and usage information\n\n")
+	fmt.Fprintf(w, "Arguments:\n")
+	fmt.Fprintf(w, "  [input file]\n")
+	fmt.Fprintf(w, "    \tOptional positional argument specifying the input SCSS file\n\n")
+	fmt.Fprintf(w, "Examples:\n")
+	fmt.Fprintf(w, "  %s -i input.scss -o output.css\n", prog)
+	fmt.Fprintf(w, "  %s -i input.scss -minify\n", prog)
+	fmt.Fprintf(w, "  %s input.scss\n", prog)
+	fmt.Fprintf(w, "  %s\n", prog)
 }
 
 func main() {
+	flag.Usage = func() {
+		printUsage(flag.CommandLine.Output())
+	}
+
+	for _, arg := range os.Args[1:] {
+		if arg == "-h" || arg == "--help" || arg == "-help" || arg == "help" {
+			flag.CommandLine.SetOutput(os.Stdout)
+			if arg == "help" {
+				printUsage(os.Stdout)
+				return
+			}
+			break
+		}
+	}
+
 	inputPath := flag.String("i", "", "Input SCSS file")
 	outputPath := flag.String("o", "", "Output CSS file Path")
+	minify := flag.Bool("minify", false, "Minify CSS output")
 	flag.Parse()
 
 	args := flag.Args()
@@ -39,22 +90,22 @@ func main() {
 	data, err := os.ReadFile(*inputPath)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
-		panic(err)
+		os.Exit(1)
 	}
 
 	fmt.Println("Compiling CSS...")
-	output := compileSCSS(string(data))
+	output := compileSCSS(string(data), *minify)
 
 	fmt.Println("Writing output to :", *outputPath)
 	if err := os.WriteFile(*outputPath, []byte(output), 0644); err != nil {
 		fmt.Println("Error writing output file:", err)
-		panic(err)
+		os.Exit(1)
 	}
 
 	fmt.Println("Done.")
 }
 
-func compileSCSS(source string) string {
+func compileSCSS(source string, minify bool) string {
 	source = convertSCSSCommentsToCSS(source)
 	variables := parseVariables(source)
 	lines := strings.Split(source, "\n")
@@ -69,7 +120,7 @@ func compileSCSS(source string) string {
 		fmt.Println("No variables found.")
 	}
 
-	for _, rawLine := range lines {
+	for lineNum, rawLine := range lines {
 		line := strings.TrimSpace(rawLine)
 		if line == "" {
 			continue
@@ -110,17 +161,19 @@ func compileSCSS(source string) string {
 			}
 			stackNames = append(stackNames, selector)
 			fmt.Printf("PUSH %s\nSTACK = [%s]\n", selector, strings.Join(stackNames, " "))
-			stack = append(stack, cssBlock{name: selector, selector: fullSelector})
+			stack = append(stack, cssBlock{name: selector, selector: fullSelector, Line: lineNum + 1})
 			continue
 		}
 
 		if strings.Contains(line, "}") {
 			if len(stack) == 0 {
-				continue
+				err := ErrorUnexpectedClosingBrace(lineNum + 1)
+				fmt.Println(err)
+				os.Exit(1)
 			}
 			block := stack[len(stack)-1]
 			if len(block.properties) > 0 {
-				output = append(output, formatBlock(block.selector, block.properties))
+				output = append(output, formatBlock(block.selector, block.properties, minify))
 			}
 			stackNames := []string{}
 			for _, parent := range stack[:len(stack)-1] {
@@ -146,12 +199,16 @@ func compileSCSS(source string) string {
 		}
 	}
 
-	for len(stack) > 0 {
+	if len(stack) > 0 {
 		block := stack[len(stack)-1]
-		if len(block.properties) > 0 {
-			output = append(output, formatBlock(block.selector, block.properties))
-		}
-		stack = stack[:len(stack)-1]
+
+		err := ErrorUnclosedBlock(
+			block.Line,
+			block.selector,
+		)
+
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	return strings.Join(output, "\n") + "\n"
@@ -232,9 +289,21 @@ func replaceVariables(line string, variables map[string]string) string {
 	return strings.TrimSpace(line)
 }
 
-func formatBlock(selector string, properties []string) string {
+func formatBlock(selector string, properties []string, minify bool) string {
+	fmt.Println("Minify:", minify)
+
 	if len(properties) == 0 {
 		return ""
+	}
+
+	if minify {
+		result := selector + "{"
+		for _, property := range properties {
+			property = strings.ReplaceAll(property, ":", ":")
+			result += property
+		}
+		result += "}"
+		return result
 	}
 
 	result := []string{selector + " {"}
