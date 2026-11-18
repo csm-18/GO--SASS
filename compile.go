@@ -14,10 +14,8 @@ func compile(srcPath, outPath string) (errors []string) {
 
 	tokens, lexErrors := lexer(srcPath, src)
 	if len(lexErrors) != 0 {
-		for _, error := range lexErrors {
-			fmt.Println(error)
-		}
-		os.Exit(1)
+		errors = append(errors, lexErrors...)
+		return errors
 	}
 
 	// for _, token := range tokens {
@@ -26,13 +24,15 @@ func compile(srcPath, outPath string) (errors []string) {
 
 	output, parseErrors := parse(tokens)
 	if len(parseErrors) != 0 {
-		for _, error := range parseErrors {
-			fmt.Println(error)
-		}
-		os.Exit(1)
+		errors = append(errors, parseErrors...)
+		return errors
 	}
 
-	fmt.Println(output)
+	writeError := createFile(outPath, output)
+	if writeError != "" {
+		errors = append(errors, writeError)
+		return errors
+	}
 
 	return errors
 }
@@ -44,4 +44,12 @@ func readFile(path string) (content string, readError string) {
 	}
 	content = string(data)
 	return content, readError
+}
+
+func createFile(path string, content string) (error string) {
+	err := os.WriteFile(path, []byte(content), 0644)
+	if err != nil {
+		error = "error: Unable to generate file: " + path
+	}
+	return error
 }
