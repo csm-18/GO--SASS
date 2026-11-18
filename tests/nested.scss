@@ -1,11 +1,16 @@
 $primary: red;
 $secondary: green;
+$font: Open Sans;
+
 nav {
   a {
     color: $primary;
-    &:hover{
+
+    &:hover {
       color: $secondary;
     }
   }
-background-color: $secondary;
+
+  background-color: $secondary;
+  font-family: $font;
 }
