@@ -1,0 +1,37 @@
+
+// Single-line comment
+
+/* Multi-line comment */
+
+/*
+  Multi-line
+  comment
+*/
+
+// Comment containing /* markers */
+
+/* Comment containing // markers */
+
+// Strings containing comment markers
+$content1: "// not a comment";
+$content2: "/* not a comment */";
+$content3: 'Hello // world';
+
+/* Escaped quotes */
+$content4: "Hello \"World\"";
+$content5: 'It\'s SCSS';
+
+/* Backslash escapes */
+$content6: "C:\\Users\\Test";
+
+// Multiple comments
+// Another comment
+/* Another block */
+
+/*! Important comment: preserve this */
+
+body {
+    // Property comment
+    color: red;
+    content: "/* still a string */";
+}

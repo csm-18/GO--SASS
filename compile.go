@@ -12,7 +12,15 @@ func compile(srcPath, outPath string) (errors []string) {
 		return errors
 	}
 
-	fmt.Println(src)
+	tokens, errors := lexer(srcPath, src)
+	if len(errors) != 0 {
+		for _, error := range errors {
+			fmt.Println(error)
+		}
+	}
+	for _, token := range tokens {
+		fmt.Printf("name: %v,value: %v, index: %v\n", token.name, token.value, token.index)
+	}
 
 	return errors
 }
